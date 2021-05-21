@@ -1,6 +1,101 @@
 \cchapter{کارهای مرتبط}
 \label{related-works}
 
+%%%%%%%%%%% معرفی Orchestration %%%%%%%%%%%%%%%%%%
+
+قبل از بررسی درخت موضوعی بهتر است به مبجث ترکیب توابع در پلتفرم‌های بدون سرور بپردازیم. در \cite{bharti2021sequential} ۷ ترکیب  از توابع در FaaS بررسی شده است. البته این مقاله ذکر می‌کند که ۲ دسته‌بندی اصلی در رایانش بدون‌سرور داریم: \lr{MbaaS} و \lr{FaaS}. از \lr{MbaaS} به عنوان سرویس‌های سمت سرور برنامه‌های کاربردی وب و موبایل استفاده می‌کنند. پلتفرم Firebase یک نمونه از آن است. در حال حاضر این دسته‌از سرویس‌های ابری به شدت در حال توسعه است و البته، تمرکز این مقاله بر روی این موضوع هم نخواهد بود. 
+
+یکی از چالش‌های اصلی معماری بدون سرور در ان است که برای تولید یک برنامه کاربردی بزرگ یا تجاری، باید جریان‌های کاری پیچیده‌ای را ایجاد کنیم. برای همین کار باید تعداد زیادی تابع را ایجاد کنیم که این توابع باید به اشکال مختلف هم‌دیگر را فراخوانی کنند. مثلا بعضا ممکن است یک تابع بعدی را فراخوانی کند یا یک تابع لازم باشد همزمان چند تابع را فراخوانی و اجرا کند و … . پیاده‌سازی یک راه حل درست برای این مورد بسیار برای رسیدن به معماری میکروسرویس برای ما مهم و حیاتی است و هرگونه کوتاهی و خطا در راه‌حل، باعث کارایی پایین محصول نهایی خواهد شد و با مشکلات بسیاری در پیاده‌سازی، ما را مواجه می‌سازد. 
+
+برای حل این معضل، ارائه دهندگان خدمات تجاری اقدام به معرفی سرویس‌هایی تحت عنوان \lr{FaaS Orchestrator} نموده‌اند. هدف این سرویس‌ها ایجاد و پشتیبانی از ترکیب‌توابع و سناریو‌های پر‌کاربرد برای دستیابی به عملکرد روان در برنامه‌های کاربردی تحت پلتفرم بدون سرور است. دو پلتفرم معروف Orchestrator عبارتند از: \lr{AWS Step Functions} (با به اختصار \lr{ASF}) و دیگری \lr{IBM Cloud Function Sequences}.
+
+توابع ترکیب شده توسط \lr{Orchestrator}ها حتما باید ۳ معیار را ارضا کنند: 
+
+\begin{enumerate}
+	
+	\item ترکیبات توابع باید به‌ گونه‌ای باشند که جعبه سیاه بودن توابع نقض نشوند. یعنی فقط باید بتوانیم از روی ورودی و خروجی توابع محتوای آن را حدس زد.
+	
+	\item این ترکیب‌ها تابع قوانین و قواعد مشخصی باشند. همچنین، این ترکیبات باید قابل جایگزینی باشند.
+	
+	\item نباید بگونه‌ای فراخوانی اتفاق بیافتد که برای محاسبه‌ی هزینه همزمان پول ۲ تابع یا بیشتر را بدهیم\LTRfootnote{double billing}.
+	
+\end{enumerate} 
+
+ما از این سه قانون با عنوان لم‌های بدون سرور\LTRfootnote{Serverless Trilemma} یاد می‌کنیم و هر ترکیبی از توابع که این ۳ معیار بالا را ارضا کند، \lr{ST-Safe} نامیده می‌شود. ترکیبات معروف توابع به شرح زیر است: 
+
+\begin{enumerate}
+	
+	\item ترکیب با استفاده از بازتاب‌\LTRfootnote{Reflection}: به این صورت است که یک تابع اقدام فراخوانی سایر توابع به صورت همزمان \LTRfootnote{synchronous} می‌کند. در شکل \ref{fig:FaaS-Reflective-Pattern.png} یک نمونه مثال از فراخوانی همزمان توابع ذکر شده است. تنها مشکلی که دارد این است که با معضل \lr{Double billing} مواجه خواهیم شد. 
+	
+	\begin{figure}
+		\centering
+		\includegraphics[width=\linewidth]{figs/FaaS-Reflective-Pattern.png}
+		\caption {الگوی بازتابی در فراخوانی‌ها}
+		\label{fig:FaaS-Reflective-Pattern.png}
+	\end{figure}
+	
+	\item ترکیب همجوشی\LTRfootnote{Fusion} : در این حالت تابع \lr{wrapper}، توابعی که فراخوانی کرده‌ایم در تابع اصلی را بارگذاری می‌کند. مشکل اصلی آن این است که اصل جعبه سیاه را نقض می‌کند و همچنین باید توابع حتما با یک زبان نوشته شوند.  شکل \ref{fig:FaaS-Fusion-Pattern} یک الگوی همجوشی را نشان می‌دهد. 
+	
+	\begin{figure}
+		\centering
+		\includegraphics[width=\linewidth]{figs/FaaS-Fusion-Pattern}
+		\caption {الگوی همجوشی در فراخوانی‌ها}
+		\label{fig:FaaS-Fusion-Pattern}
+	\end{figure}
+	
+	
+	\item ترکیب غیرهمزمان: در این حالت،‌ تابع اول به فراخوانی تابع دوم می‌پردازد درحالی که اولی دیگر فعال نیست. این ترکیب نیز قانون دوم \lr{ST} را نقض می‌کند. 
+	
+	\item ترکیب توسط مشتری: در این حالت توابع ساخته می‌شود و خود مشتری خارج از سیستم بدون سرور اقدام به ترکیب توابع می‌کند. معروف ترین نمونه آن \lr{ASF} است و اصل اول را نقض می‌کند. 
+	
+	\item ترکیب زنجیره‌وار: در این ترکیب، یک ترکیب پس از اتمام اقدام به فراخوانی تابع بعدی می‌کند و همینطور ادامه پیدا می‌کند. این ترکیب مشکل \lr{double billing} دارد و \lr{ST-Safe} نیست. در شکل \ref{fig:FaaS-Chaining-Pattern} الگوی زنجیره‌ای نمایش داده‌شده است. 
+	
+	\begin{figure}
+		\centering
+		\includegraphics[width=\linewidth]{figs/FaaS-Chaining-Pattern}
+		\caption {الگوی همجوشی در فراخوانی‌ها}
+		\label{fig:FaaS-Chaining-Pattern}
+	\end{figure}
+	
+\end{enumerate}
+
+مقایسه‌ی این ترکیبات در جدول \ref{table:Function-Composition-Comparision} به طور خلاصه بیان شده است:‌
+
+\begin{table}
+	\caption{مقایسه‌ی بین روش‌های ترکیب توابع}
+	\begin{center}
+		
+		\begin{tabular}{| c | c | c | c |}
+			\hline
+			نوع ترکیب & پشتیبانی از \lr{poly glot} & کدام محدودیت ST نقض می‌شود؟ & مدت زمان اجرای برنامه تست \\
+			\hline
+			بازتاب & بله & پرداخت مجدد\LTRfootnote{Double Billing} & $311.0.$ \\
+			\hline 
+			همجوشی & خیر & جعبه‌سیاه\LTRfootnote{‌Black Box} & $2.47$ \\
+			\hline
+			غیرهمزمانی\LTRfootnote{Async} & نامشخص & نامشخص & نامشخص \\
+			\hline
+			ترکیب توسط مشتری\LTRfootnote{Client}  & بله & قاعده ترکیب توابع & $331.83$ \\
+			\hline
+			زنجیره‌ای & بله & پرداخت مجدد & $1104.78$ \\
+			\hline
+		\end{tabular}
+		\label{table:Function-Composition-Comparision}
+	\end{center}
+\end{table}
+
+در نهایت با مقایسه دو پلتفرم \lr{ASF} و \lr{IBM Cloud Function Sequences} برای یک برنامه تست مشابه به مدت‌زمان ‌های اجرای شکل \ref{FaaS-Orchestrators-Comparision-Runtim} می‌رسیم. 
+
+\begin{figure}
+	\centering
+	\includegraphics[width=\linewidth]{figs/FaaS-Orchestrators-Comparision-Runtime}
+	\caption {مقایسه زمان اجرا ۲ برنامه مشابه با \lr{Node.js} و پایتون در دو پلتفرم \lr{ASF} و \lr{IBM Cloud Function Sequences}}
+	\label{fig:FaaS-Orchestrators-Comparision-Runtime}
+\end{figure}
+
+%%%%%%%% درخت موضوعی %%%%%%%%%%%%%%%%%%%%%
+\section{درخت موضوعی}
+
 در این قسمت به بیان کارهای انجام شده در این حوزه خواهیم پرداخت و برای این کار درخت موضوعی مرتبط با آن رسم شده. هر گره ار درخت موضوعی یک راهکار برای جلوگیری از رخداد شروع سرد است و هر گره دارای بخش‌هایی است تا به برگ برسیم. در شکل \ref{fig:subject-tree} درخت موضوعی نمایش داده شده است و هر گره را به ترتیب بررسی خواهیم کرد. 
 
 \begin{figure}
@@ -123,7 +218,7 @@
 
 \begin{figure}
 	\centering
-	\includegraphics[width=\linewidth]{figs/pause-container-solution}
+	\includegraphics[width=0.8\linewidth]{figs/pause-container-solution}
 	\caption {استفاده از \lr{Pause Container}ها برای کاهش تاخیر شروع سرد}
 	\label{fig:pause-container-solution}
 \end{figure}
@@ -144,12 +239,24 @@
 
 \begin{figure}
 	\centering
-	\includegraphics[width=\linewidth]{figs/Pause-Containers-Results}
+	\includegraphics[width=0.8\linewidth]{figs/Pause-Containers-Results}
 	\caption {نتیاج و بهبود حاصل شده با استفاده از \lr{Pause Container}ها}
 	\label{fig:Pause-Containers-Results}
 \end{figure}
 
+%%%%%%%%%%%%%%%%%%%%%%% کاهش رخداد‌های شروع سرد%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{کاهش رخداد‌های شروع سرد}
 
 در این قسمت به دنبال روش‌هایی برای کاهش احتمال شروع سرد در پلتفرم‌های بدون سرور هستیم. در واقع ما به دنبال این هستیم که جلوی رخداد شروع سرد را با هایی بگیریم. از دسته‌بندی‌های کلی در این مبحث می‌وان به روش‌های جلوگیری از شروع سرد با استفاده از پینگ‌گیری یا روش‌های پیش‌بینی شروع سرد، اشاره کرد. 
+
+\subsection{پینگ‌گیری}
+متن تست
+\subsubsection{استفاده از ابزار‌ها}
+متن تست
+\subsection{پیش‌بینی فراخوانی‌ها}
+متن تست
+\subsubsection{استفاده از مدل‌های ریاضی }
+متن تست
+\subsubsection{استفاده از رهیافت‌های یادگیری ماشین}
+متن تست
